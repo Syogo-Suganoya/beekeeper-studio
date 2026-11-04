@@ -4,6 +4,7 @@ import { TabulatorFormatterParams } from '@/common/tabulator'
 import helpers, { escapeHtml } from '@shared/lib/tabulator'
 export const NULL = '(NULL)'
 import {CellComponent} from 'tabulator-tables'
+import { guessUnixTimestamp } from '@/lib/time/unixTimestamp'
 
 export function buildNullValue(text: string) {
   return `<span class="null-value">(${escapeHtml(text)})</span>`
@@ -57,10 +58,9 @@ export default {
         !params?.isPK &&
         _.isInteger(Number(cellValue))
       ) {
-        try {
-          cellValue += ` (${new Date(Number(cellValue)).toISOString()} in unixtime)`
-        } catch (e) {
-          console.error(`${cellValue} cannot be converted to a date`)
+        const guessed = guessUnixTimestamp(Number(cellValue))
+        if (guessed) {
+          cellValue += ` (${guessed.date.toISOString()} as unix ${guessed.unit})`
         }
       }
       
