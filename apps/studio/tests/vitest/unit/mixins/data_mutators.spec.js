@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import mutators, { buildFormatterWithTooltip } from "@/mixins/data_mutators"
 
 
@@ -33,27 +33,30 @@ describe("cellFormatter", () => {
       }
     }
 
-    const input = {
-      getValue: () => '8640000000000000',
+    const cell = (value, definition = params) => ({
+      getValue: () => value,
       getElement: () => document.createElement('a'),
-      getColumn: () => ({ getDefinition: () => params }),
-    }
+      getColumn: () => ({ getDefinition: () => definition }),
+    })
 
-    const inputPK = {
-      getValue: () => '8640000000000000',
-      getElement: () => document.createElement('a'),
-      getColumn: () => ({ getDefinition: () => paramsHavePk}),
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-11-04T00:00:00Z'))
+    try {
+      expect(mutators.methods.cellTooltip(null, cell('1750957464')))
+        .toBe('1750957464 (2025-06-26T17:04:24.000Z as unix seconds)')
+      expect(mutators.methods.cellTooltip(null, cell('1750957464000')))
+        .toBe('1750957464000 (2025-06-26T17:04:24.000Z as unix milliseconds)')
+      expect(mutators.methods.cellTooltip(null, cell('1750957464000000')))
+        .toBe('1750957464000000 (2025-06-26T17:04:24.000Z as unix microseconds)')
+      expect(mutators.methods.cellTooltip(null, cell('1750957464000000000')))
+        .toBe('1750957464000000000 (2025-06-26T17:04:24.000Z as unix nanoseconds)')
+      // primary keys are ids, not timestamps
+      expect(mutators.methods.cellTooltip(null, cell('1750957464', paramsHavePk))).toBe('1750957464')
+      // too large to be a date in any unit
+      expect(mutators.methods.cellTooltip(null, cell('9000000000000000000000000'))).toBe('9000000000000000000000000')
+    } finally {
+      vi.useRealTimers()
     }
-
-    const badInput = {
-      getValue: () => '8640000000000005',
-      getElement: () => document.createElement('a'),
-      getColumn: () => ({ getDefinition: () => params }),
-    }
-
-    expect(mutators.methods.cellTooltip(null, input)).toBe('8640000000000000 (+275760-09-13T00:00:00.000Z in unixtime)')
-    expect(mutators.methods.cellTooltip(null, inputPK)).toBe('8640000000000000')
-    expect(mutators.methods.cellTooltip(null, badInput)).toBe('8640000000000005')
   })
 
   it('render tooltip with escaped html', () => {
