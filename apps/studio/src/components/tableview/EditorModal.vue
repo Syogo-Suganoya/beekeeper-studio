@@ -3,6 +3,7 @@
     <modal
       :name="modalName"
       class="beekeeper-modal vue-dialog editor-dialog"
+      :click-to-close="!hasEdits"
       @opened="onOpen"
       @before-close="onBeforeClose"
     >
@@ -177,6 +178,7 @@ export default Vue.extend({
       error: "",
       languageName: "text",
       content: "",
+      initialContent: "",
       eventParams: null,
       wrapText: TextLanguage.wrapTextByDefault,
       isReadOnly: false
@@ -195,6 +197,9 @@ export default Vue.extend({
     },
     languages() {
       return Languages
+    },
+    hasEdits() {
+      return this.content !== this.initialContent
     },
     language() {
       return Languages.find((lang) => lang.name === this.languageName);
@@ -226,6 +231,7 @@ export default Vue.extend({
       } catch {
         this.content = content
       }
+      this.initialContent = this.content
       this.eventParams = eventParams
       this.isReadOnly = eventParams?.isReadOnly
       this.wrapText = language.wrapTextByDefault ?? false
