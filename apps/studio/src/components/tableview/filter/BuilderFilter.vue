@@ -1,19 +1,16 @@
 <template>
   <div class="filter-container">
-    <div class="select-wrap">
-      <select
-        name="Filter Field"
-        class="form-control"
+    <div class="select-wrap field-select-wrap">
+      <v-select
         v-model="filter.field"
-      >
-        <option
-          v-for="column in columns"
-          :key="column.columnName"
-          :value="column.columnName"
-        >
-          {{ column.columnName }}
-        </option>
-      </select>
+        :options="columnNames"
+        :clearable="false"
+        :components="{ OpenIndicator }"
+        :title="filter.field"
+        :input-id="`filter-field-${index}`"
+        append-to-body
+        class="dropdown-search form-control field-select"
+      />
     </div>
     <div class="select-wrap">
       <select
@@ -66,10 +63,16 @@
 import { TableFilterSymbols } from '@/lib/db/types';
 import { isListFilter } from '@/common/utils';
 import {mapState} from 'vuex'
+import vSelect from 'vue-select'
 
 export default {
   props: ['filter', 'columns', 'index'],
-  data: () => ({}),
+  components: { vSelect },
+  data: () => ({
+    OpenIndicator: {
+      render: createElement => createElement('i', { class: { 'material-icons': true } }, 'arrow_drop_down')
+    }
+  }),
   watch: {
     filter: {
       deep: true,
@@ -80,6 +83,9 @@ export default {
   },
   computed: {
     ...mapState(['supportedFeatures']),
+    columnNames() {
+      return (this.columns ?? []).map((column) => column.columnName)
+    },
     filterTypes() {
       const filterTypes = this.supportedFeatures.filterTypes ?? ['standard']
       

@@ -347,6 +347,32 @@
         padding-right: 1.25rem;
         min-width: 120px;
       }
+      // Searchable column picker (vue-select)
+      > .field-select {
+        min-width: 120px;
+        padding-right: 0;
+        background: transparent;
+        .vs__dropdown-toggle {
+          height: 100%;
+        }
+        .vs__selected-options {
+          min-width: 0;
+          flex-wrap: nowrap;
+          align-items: center;
+        }
+        .vs__selected {
+          position: static;
+          margin: 0;
+          padding: 0;
+          min-width: 0;
+        }
+        .vs__search {
+          flex: 1 1 0;
+          min-width: 0;
+          padding: 0;
+          margin: 0;
+        }
+      }
     }
     .btn-primary {
       .material-icons, .material-icons-outlined {
@@ -356,7 +382,7 @@
     @media (max-width: 850px) {
       flex-wrap: nowrap;
       .select-wrap {
-        > select {
+        > select, > .field-select {
           min-width: 30px;
         }
       }

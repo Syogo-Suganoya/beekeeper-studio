@@ -878,12 +878,7 @@ input[type=file] {
 
 // Dropdown
 // --------------------------
-.dropdown-search {
-  display: block;
-  font-size: 100%;
-  margin: 0;
-  width: 100%;
-  border: 0;
+@mixin dropdown-search-colors {
   --vs-controls-color: var(--gray-a9);
   --vs-border-color: var(--border-subtle);
 
@@ -899,6 +894,15 @@ input[type=file] {
 
   --vs-dropdown-option--active-bg: var(--panel-bg-hover);
   --vs-dropdown-option--active-color: var(--text-contrast);
+}
+
+.dropdown-search {
+  display: block;
+  font-size: 100%;
+  margin: 0;
+  width: 100%;
+  border: 0;
+  @include dropdown-search-colors;
 
   .vs__clear{
     display: none;
@@ -926,4 +930,10 @@ input[type=file] {
   input {
     border: unset;
   }
+}
+
+// A .dropdown-search with `append-to-body` renders its menu under <body>,
+// outside the element above, so it needs the same colors.
+body > .vs__dropdown-menu {
+  @include dropdown-search-colors;
 }
