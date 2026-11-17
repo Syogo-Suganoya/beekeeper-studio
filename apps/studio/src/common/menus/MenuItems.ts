@@ -16,7 +16,9 @@ export function menuItems(actionHandler: IMenuActionHandler, settings: IGroupedU
     quit: {
       id: 'quit',
       label: platformInfo.isMac ? 'Quit' : 'Exit',
-      accelerator: platformInfo.isMac ? 'CommandOrControl+Q' : undefined,
+      // Cmd+Q on macOS and Ctrl+Q on Linux are the platform conventions.
+      // Windows uses Alt+F4, which the window already handles.
+      accelerator: platformInfo.isMac || platformInfo.isLinux ? 'CommandOrControl+Q' : undefined,
       click: actionHandler.quit
     },
     undo: {
