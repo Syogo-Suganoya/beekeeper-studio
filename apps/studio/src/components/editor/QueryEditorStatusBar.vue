@@ -80,6 +80,14 @@
         <span>{{ elapsedTimeText }}</span>
       </span>
     </template>
+    <span
+      class="statusbar-item columns-loading"
+      v-if="columnsLoading"
+      title="Fetching columns for autocomplete"
+    >
+      <loading-spinner :size="10" />
+      <span>Loading columns...</span>
+    </span>
     <span class="expand" />
     <x-button
       v-if="canEdit && editing && changesCount > 0"
@@ -239,6 +247,7 @@
 import humanizeDuration from 'humanize-duration';
 import Statusbar from '../common/StatusBar.vue';
 import VisualizeButton from '../plugins/VisualizeButton.vue';
+import LoadingSpinner from '../common/loading/LoadingSpinner.vue';
 import { mapState, mapGetters } from 'vuex';
 import { AppEvent } from '@/common/AppEvent';
 import formatSeconds from "@/lib/time/formatSeconds";
@@ -260,8 +269,8 @@ const shortEnglishHumanizer = humanizeDuration.humanizer({
 });
 
 export default {
-  props: ['results', 'running', 'value', 'executeTime', 'wrapText', 'active', 'elapsedTime', 'editing', 'changesCount', 'changesString', 'resultEditable', 'selectedCells', 'explainResult'],
-  components: { Statusbar, VisualizeButton },
+  props: ['results', 'running', 'columnsLoading', 'value', 'executeTime', 'wrapText', 'active', 'elapsedTime', 'editing', 'changesCount', 'changesString', 'resultEditable', 'selectedCells', 'explainResult'],
+  components: { Statusbar, VisualizeButton, LoadingSpinner },
   data() {
     return {
       showHint: false,

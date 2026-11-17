@@ -381,6 +381,7 @@
         v-model="selectedResult"
         :results="results"
         :running="running"
+        :columns-loading="showColumnsLoading"
         :editing="editingResult"
         :changes-count="$refs.table?.pendingChangesCount"
         :changes-string="$refs.table?.pendingChangesString"
@@ -634,6 +635,8 @@ import { KeybindingPath } from '@/common/bksConfig/BksConfigProvider'
   const isEmpty = (s) => _.isEmpty(_.trim(s))
   const editorDefault = "\n\n\n\n\n\n\n\n\n\n"
   const hasUsedTransactionsKey = "hasUsedTransactions";
+  /** Wait this long before showing "Loading columns..." so fast fetches don't flash it */
+  const COLUMNS_LOADING_DELAY = 300
 
   export default {
     // this.queryText holds the current editor value, always
@@ -651,6 +654,10 @@ import { KeybindingPath } from '@/common/bksConfig/BksConfigProvider'
         /** Cells selected in the result grid */
         resultSelectedCells: 0,
         running: false,
+        /** Number of in-flight column fetches for autocomplete */
+        columnsLoadingCount: 0,
+        /** Shown only once a fetch takes longer than COLUMNS_LOADING_DELAY */
+        showColumnsLoading: false,
         runningCount: 1,
         runningType: 'current',
         selectedResult: 0,
@@ -2038,13 +2045,26 @@ import { KeybindingPath } from '@/common/bksConfig/BksConfigProvider'
 
         // Only refresh columns if we don't have them cached.
         if (!table.columns?.length) {
-          await this.$store.dispatch("updateTableColumns", table);
+          await this.withColumnsLoading(() => this.$store.dispatch("updateTableColumns", table));
           table = this.tables.find(
             (t: TableOrView) => t.name === tableName || `${t.schema}.${t.name}` === tableName
           );
         }
 
         return table?.columns.map((c) => c.columnName);
+      },
+      async withColumnsLoading<T>(fn: () => Promise<T>): Promise<T> {
+        this.columnsLoadingCount++
+        const timer = setTimeout(() => {
+          this.showColumnsLoading = this.columnsLoadingCount > 0
+        }, COLUMNS_LOADING_DELAY)
+        try {
+          return await fn()
+        } finally {
+          clearTimeout(timer)
+          this.columnsLoadingCount--
+          if (this.columnsLoadingCount === 0) this.showColumnsLoading = false
+        }
       },
       handleQuerySelectionChange({ queries, selectedQuery, error }) {
         this.individualQueries = queries;
