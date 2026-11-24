@@ -18,6 +18,11 @@ const unquoteTestCases = {
   "\n\n\n\n\"SELECT * FROM bar;\"\n\n\n\n    ": `SELECT * FROM bar;`,
   "\n\n\n\n'SELECT * FROM bar;'\n\n\n\n    ": `SELECT * FROM bar;`,
   "\n\n\n\n`SELECT * FROM bar;`\n\n\n\n    ": `SELECT * FROM bar;`,
+  // text that isn't unquoted is pasted as-is, surrounding whitespace included
+  "SELECT *\nFROM foo;\n": "SELECT *\nFROM foo;\n",
+  "\n  SELECT * FROM foo;\n\n": "\n  SELECT * FROM foo;\n\n",
+  "  \"this is not a query\"\n": "  \"this is not a query\"\n",
+  "\n": "\n",
 }
 
 describe("Query Unquoter", () => {
