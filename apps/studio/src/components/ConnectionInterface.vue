@@ -34,7 +34,13 @@
               </ImportButton>
             </div>
           </div>
-          <div class="connection-form-card card-flat padding" :class="determineLabelColor" v-else>
+          <div
+            class="connection-form-card card-flat padding"
+            :class="determineLabelColor"
+            v-else
+            @input.capture="onFormInput"
+            @change.capture="onFormInput"
+          >
             <div class="connection-heading">
               <h3 class="card-title">
                 {{ pageTitle }}
@@ -330,6 +336,7 @@ import ContentPlaceholderHeading from '@/components/common/loading/ContentPlaceh
 import { FriendlyErrorHelper } from '@/frontend/utils/FriendlyErrorHelper'
 import PrivacyBanner from './PrivacyBanner.vue'
 import DatabaseIcon from "@/components/common/DatabaseIcon.vue"
+import { connectionFormSnapshot } from '@/common/connectionFormSnapshot'
 
 const log = rawLog.scope('ConnectionInterface')
 // import ImportUrlForm from './connection/ImportUrlForm';
@@ -355,6 +362,10 @@ export default Vue.extend({
       loadingSSOModalOpened: false,
       version: this.$config.appVersion,
       isConfigReady: false,
+      // Snapshot of the form taken just before the user's first edit, to
+      // detect unsaved changes. null until the user edits something.
+      pristineSnapshot: null as string | null,
+      discardPrompt: null as Promise<boolean> | null,
     }
   },
   computed: {
@@ -428,8 +439,11 @@ export default Vue.extend({
     },
     config: {
       deep: true,
-      handler() {
+      handler(newConfig, oldConfig) {
         this.connectionError = null
+        // A different object was loaded into the form (another connection,
+        // a new one, or the saved copy after Save): it starts unchanged.
+        if (newConfig !== oldConfig) this.pristineSnapshot = null
       }
     },
     'config.connectionType'(newConnectionType) {
@@ -532,6 +546,7 @@ export default Vue.extend({
 
     },
     async create(options: { connectionFolderId?: number } = {}) {
+      if (!await this.confirmDiscardChanges()) return
       const connectionType = await this.$promptConnectionType()
       if (!connectionType) {
         return
@@ -561,9 +576,41 @@ export default Vue.extend({
       return unsaved
     },
     async edit(config) {
+      if (!await this.confirmDiscardChanges()) return
+      await this.loadConfig(config)
+    },
+    async loadConfig(config) {
       this.config = await this.configFrom(config)
       this.errors = null
       this.connectionError = null
+    },
+    onFormInput() {
+      // Runs in the capture phase, before v-model applies the edit, so the
+      // snapshot still has the previous values. Taking it here rather than on
+      // load means defaults the forms fill in by themselves (some of them
+      // asynchronously, like the AWS profiles for IAM auth) aren't edits.
+      if (this.pristineSnapshot === null) {
+        this.pristineSnapshot = connectionFormSnapshot(this.config)
+      }
+    },
+    hasUnsavedChanges(): boolean {
+      if (this.pristineSnapshot === null) return false
+      return connectionFormSnapshot(this.config) !== this.pristineSnapshot
+    },
+    async confirmDiscardChanges(): Promise<boolean> {
+      if (!this.hasUnsavedChanges()) return true
+      // Clicks that land before the dialog shows (e.g. a quick double-click)
+      // share one prompt instead of stacking several.
+      if (!this.discardPrompt) {
+        this.discardPrompt = this.$confirm(
+          "Discard unsaved changes?",
+          "Changes to this connection haven't been saved and will be lost.",
+          { confirmLabel: "Discard", variant: "danger" }
+        ).finally(() => {
+          this.discardPrompt = null
+        })
+      }
+      return await this.discardPrompt
     },
     async remove(config) {
       if (!await this.$confirm(`Delete "${config.name}"?`, undefined, { variant: "danger" })) {
@@ -581,6 +628,7 @@ export default Vue.extend({
       this.$noty.success(`${config.name} deleted`)
     },
     async duplicate(config) {
+      if (!await this.confirmDiscardChanges()) return
       // Duplicates ES 6 class of the connection, without any reference to the old one.
       const duplicateConfig = await this.$store.dispatch('data/connections/clone', config)
       duplicateConfig.name = 'Copy of ' + duplicateConfig.name
@@ -623,6 +671,7 @@ export default Vue.extend({
       }
     },
     async handleConnect(config) {
+      if (!await this.confirmDiscardChanges()) return
       this.config = await this.configFrom(config)
       await this.submit()
     },
@@ -666,7 +715,7 @@ export default Vue.extend({
         this.$noty.success("Connection Saved")
         // we want to fetch the saved one in case it's changed
         const connection = this.connections.find((c) => c.id === id)
-        this.edit(connection)
+        await this.loadConfig(connection)
       } catch (ex) {
         console.error(ex)
         this.errors = [ex.message]

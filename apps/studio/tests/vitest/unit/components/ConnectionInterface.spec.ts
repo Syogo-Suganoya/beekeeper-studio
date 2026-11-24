@@ -190,4 +190,87 @@ describe('ConnectionInterface', () => {
 
     expect(wrapper.vm.config.id).toBeNull()
   })
+  describe('unsaved changes', () => {
+    // Edits are detected from a snapshot taken on the form's first input
+    // event (before v-model applies it). `onFormInput` stands in for it here.
+    async function editAndChangeHost(host: string) {
+      const recent = await buildRecentRow({ host: 'first.example.com' })
+      await wrapper.vm.edit(recent)
+      await wrapper.vm.$nextTick()
+      wrapper.vm.onFormInput()
+      wrapper.vm.config.host = host
+    }
+
+    it('asks before loading another connection over unsaved edits', async () => {
+      const confirm = vi.fn(async () => false)
+      wrapper.vm.$confirm = confirm
+      await editAndChangeHost('edited.example.com')
+
+      const other = await buildRecentRow({ host: 'other.example.com' })
+      await wrapper.vm.edit(other)
+
+      expect(confirm).toHaveBeenCalledTimes(1)
+      expect(wrapper.vm.config.host).toBe('edited.example.com')
+    })
+
+    it('loads the other connection when the edits are discarded', async () => {
+      wrapper.vm.$confirm = vi.fn(async () => true)
+      await editAndChangeHost('edited.example.com')
+
+      const other = await buildRecentRow({ host: 'other.example.com' })
+      await wrapper.vm.edit(other)
+
+      expect(wrapper.vm.config.host).toBe('other.example.com')
+    })
+
+    it('does not ask when nothing was edited', async () => {
+      const confirm = vi.fn(async () => false)
+      wrapper.vm.$confirm = confirm
+      const recent = await buildRecentRow({ host: 'first.example.com' })
+      await wrapper.vm.edit(recent)
+      // a default filled in by the form itself, without user input
+      wrapper.vm.config.iamAuthOptions = { awsProfile: 'default' }
+
+      const other = await buildRecentRow({ host: 'other.example.com' })
+      await wrapper.vm.edit(other)
+
+      expect(confirm).not.toHaveBeenCalled()
+      expect(wrapper.vm.config.host).toBe('other.example.com')
+    })
+
+    it('does not ask when an edit was undone', async () => {
+      const confirm = vi.fn(async () => false)
+      wrapper.vm.$confirm = confirm
+      await editAndChangeHost('edited.example.com')
+      wrapper.vm.config.host = 'first.example.com'
+
+      await wrapper.vm.edit(await buildRecentRow({ host: 'other.example.com' }))
+
+      expect(confirm).not.toHaveBeenCalled()
+    })
+
+    it('asks before connecting to another connection over unsaved edits', async () => {
+      wrapper.vm.$confirm = vi.fn(async () => false)
+      await editAndChangeHost('edited.example.com')
+
+      await wrapper.vm.handleConnect(await buildRecentRow({ host: 'other.example.com' }))
+
+      expect(connectCalls).toHaveLength(0)
+    })
+
+    it('shares one prompt between calls made while it is open', async () => {
+      let answer: (v: boolean) => void = () => undefined
+      const confirm = vi.fn(() => new Promise<boolean>((resolve) => { answer = resolve }))
+      wrapper.vm.$confirm = confirm
+      await editAndChangeHost('edited.example.com')
+
+      const a = wrapper.vm.confirmDiscardChanges()
+      const b = wrapper.vm.confirmDiscardChanges()
+      answer(true)
+
+      expect(await a).toBe(true)
+      expect(await b).toBe(true)
+      expect(confirm).toHaveBeenCalledTimes(1)
+    })
+  })
 })
