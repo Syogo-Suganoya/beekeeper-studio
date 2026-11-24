@@ -64,6 +64,7 @@
                 class="filter-input"
                 type="text"
                 placeholder="Filter"
+                ref="filterInput"
                 v-model="filterQuery"
               >
               <x-buttons class="filter-actions">
@@ -491,6 +492,7 @@ export default {
     },
     clearFilter() {
       this.filterQuery = null
+      this.$refs.filterInput?.focus()
     },
     createQuery() {
       this.startRootDraft("item");

@@ -26,6 +26,7 @@
               class="filter-input"
               type="text"
               placeholder="Filter"
+              ref="filterInput"
               v-model="connFilter"
             >
             <x-buttons class="filter-actions">
@@ -670,6 +671,7 @@ export default {
     },
     clearFilter() {
       this.connFilter = null;
+      this.$refs.filterInput?.focus()
     },
     buildSplit() {
       if (this.split) this.split.destroy()
