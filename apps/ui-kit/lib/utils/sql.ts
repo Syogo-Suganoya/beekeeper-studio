@@ -24,15 +24,16 @@ export function safelyIdentify(
 
 // a function that takes in a string and a dialect,
 // if the string is determined to be most likely a query and it is quoted, we remove the quotes,
-// else we just return the trimmed query
+// else we return the string unchanged
 export function removeQueryQuotes(possibleQuery: string, dialect: Dialect): string {
-  // ensure there's no leading/trailing whitespace before we make our checks
-  possibleQuery = possibleQuery.trim();
+  // ignore leading/trailing whitespace when checking for quotes, but don't
+  // strip it from text that isn't unquoted (pasted text should stay as-is)
+  const trimmed = possibleQuery.trim();
 
   const quotes = ["'", '"', '`'];
-  const first = possibleQuery[0], last = possibleQuery[possibleQuery.length - 1];
+  const first = trimmed[0], last = trimmed[trimmed.length - 1];
   const isQuoted = quotes.includes(first) && quotes.includes(last) && first === last;
-  const unquotedQuery = possibleQuery.slice(1, possibleQuery.length - 1);
+  const unquotedQuery = trimmed.slice(1, trimmed.length - 1);
 
   // if the query is quoted and we can identify at least one valid sql statement, we'll unquote it.
   const { queries } = safelyIdentify(unquotedQuery, { dialect });
