@@ -110,6 +110,39 @@ BEEKEEPER =
       expect(result).toContain('BEEKEEPER')
     })
 
+    describe("Entity ordering", () => {
+      it("lists tables and views sorted by name", async () => {
+        const tables = await util.connection.listTables({ schema: util.defaultSchema })
+        const tableNames = tables.map((t) => t.name)
+        expect(tableNames.length).toBeGreaterThan(1)
+        expect(tableNames).toEqual([...tableNames].sort())
+
+        await util.connection.executeQuery('CREATE VIEW "zz_order_view" AS SELECT 1 AS "a" FROM DUAL')
+        await util.connection.executeQuery('CREATE VIEW "aa_order_view" AS SELECT 1 AS "a" FROM DUAL')
+        try {
+          const views = await util.connection.listViews({ schema: util.defaultSchema })
+          const viewNames = views.map((v) => v.name)
+          expect(viewNames).toEqual([...viewNames].sort())
+        } finally {
+          await util.connection.executeQuery('DROP VIEW "zz_order_view"')
+          await util.connection.executeQuery('DROP VIEW "aa_order_view"')
+        }
+      })
+
+      it("excludes ignored views", async () => {
+        await util.connection.executeQuery('CREATE VIEW "ignored_view" AS SELECT 1 AS "a" FROM DUAL')
+        try {
+          const views = await util.connection.listViews({
+            schema: util.defaultSchema,
+            ignore: ['ignored_view'],
+          })
+          expect(views.map((v) => v.name)).not.toContain('ignored_view')
+        } finally {
+          await util.connection.executeQuery('DROP VIEW "ignored_view"')
+        }
+      })
+    })
+
     describe("When running block queries", () => {
       it("Should execute block queries without error", async () => {
         await util.connection.executeQuery(`

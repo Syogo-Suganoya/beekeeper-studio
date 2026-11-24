@@ -807,6 +807,7 @@ export class OracleClient extends BasicDatabaseClient<DriverResult, oracle.Conne
     if (filter?.schema) builder.where('OWNER', filter.schema.toUpperCase())
     if (filter?.only) builder.whereIn('TABLE_NAME', filter.only)
     if (filter?.ignore) builder.whereNotIn('TABLE_NAME', filter.ignore)
+    builder.orderBy(['OWNER', 'TABLE_NAME'])
     const query = builder.select().toQuery()
     const tables = await this.driverExecuteSimple(query)
 
@@ -865,7 +866,8 @@ export class OracleClient extends BasicDatabaseClient<DriverResult, oracle.Conne
     const q = this.knex('ALL_VIEWS').select()
     if (filter?.schema) q.where('OWNER', filter.schema.toUpperCase())
     if (filter?.only) q.whereIn('VIEW_NAME', filter.only)
-    if (filter?.ignore) q.whereIn('VIEW_NAME', filter.ignore)
+    if (filter?.ignore) q.whereNotIn('VIEW_NAME', filter.ignore)
+    q.orderBy(['OWNER', 'VIEW_NAME'])
 
     const views = await this.driverExecuteSimple(q.toQuery())
     return views.map((row) => {
