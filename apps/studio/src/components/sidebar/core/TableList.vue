@@ -11,6 +11,7 @@
             class="filter-input"
             type="text"
             placeholder="Filter"
+            ref="filterInput"
             v-model="filterQuery"
           >
           <x-buttons class="filter-actions">
@@ -315,7 +316,12 @@
     },
     methods: {
       clearFilter() {
+        // setFilterQuery is debounced, so commit the clear right away too:
+        // otherwise text typed straight after clearing is appended to the old
+        // filter still shown in the input
+        this.$store.commit('filterQuery', null)
         this.filterQuery = null
+        this.$refs.filterInput?.focus()
       },
       toggleExpandCollapse() {
         this.isExpanded = !this.isExpanded
