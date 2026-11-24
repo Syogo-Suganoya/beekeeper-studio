@@ -40,6 +40,20 @@ describe("menuItems", () => {
     }
   );
 
+  describe("quit accelerator", () => {
+    it("uses Cmd+Q on macOS", () => {
+      expect(buildItems({ isMac: true }).quit.accelerator).toBe("CommandOrControl+Q");
+    });
+
+    it("uses Ctrl+Q on Linux", () => {
+      expect(buildItems({ isMac: false, isLinux: true }).quit.accelerator).toBe("CommandOrControl+Q");
+    });
+
+    it("has no accelerator on Windows, which uses Alt+F4", () => {
+      expect(buildItems({ isMac: false, isWindows: true }).quit.accelerator).toBeUndefined();
+    });
+  });
+
   it("keeps undo/redo bound to their native roles", () => {
     const items = buildItems({ isMac: true });
     expect(items.undo.role).toBe("undo");
